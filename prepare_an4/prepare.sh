@@ -5,6 +5,7 @@ tar -xzvf an4_raw.bigendian.tar.gz
 rm -r an4_raw.bigendian.tar.gz
 ln -s ../Mapper.lua .
 AN4_PATH='an4'
+echo "add to test github."
 echo "ROOT_FOLDER: $AN4_PATH"
 find $AN4_PATH -name '*.wav' -delete
 echo "Converting raw an4 dataset..."

@@ -16,6 +16,7 @@ function WEREvaluator:__init(datasetPath, mapper, testBatchSize, nbOfTestIterati
     self.nbOfTestIterations = nbOfTestIterations
     self.indexer = indexer(datasetPath, testBatchSize)
     self.pool = threads.Threads(1, function() require 'Loader' end)
+    --https://github.com/torch/threads
     self.mapper = mapper
     self.logsPath = logsPath
     self.suffix = '_' .. os.date('%Y%m%d_%H%M%S')
@@ -38,7 +39,7 @@ function WEREvaluator:getWER(gpu, model, verbose, epoch)
 
     -- get first batch
     local inds = self.indexer:nxt_inds()
-    self.pool:addjob(function()
+    self.pool:addjob(function() --used to queue jobs to be executed by the pool of queue threads.
         return _loader:nxt_batch(inds, false)
     end,
         function(spect, label, sizes)
@@ -60,6 +61,7 @@ function WEREvaluator:getWER(gpu, model, verbose, epoch)
     for i = 1, self.nbOfTestIterations do
         -- get buf and fetch next one
         self.pool:synchronize()
+        -- synchronize()：call dojob until all callbacks and corresponding endcallbacks are executed on the queue and main threads, respectively.
         local inputsCPU, targets, sizes_array = spect_buf, label_buf, sizes_buf
         inds = self.indexer:nxt_inds()
         self.pool:addjob(function()

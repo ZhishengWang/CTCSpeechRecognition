@@ -57,7 +57,7 @@ function indexer:prep_sorted_inds()
 
     -- if not make a new one
     print('did not find previously saved indices, generating.')
-    self.db_spect:open(); local txn = self.db_spect:txn(true)
+    self.db_spect:open(); local txn = self.db_spect:txn(true) ----Read-only transaction
     local lengths = {}
     for i = 1, self.lmdb_size do
         local lengthOfAudio = txn:get(i):size(2) -- get the len of spect
@@ -79,7 +79,7 @@ end
 function indexer:nxt_sorted_inds()
     local meta_inds = self:nxt_inds()
     local inds = {}
-    for _, v in ipairs(meta_inds) do
+    for _, v in ipairs(meta_inds) do  ---ipairs()函数用于遍历table中的数组部分.
         table.insert(inds, self.sorted_inds[v][1])
     end
     return inds
@@ -158,7 +158,7 @@ function Loader:nxt_batch(indices, includeTranscripts)
 
         TODO we allocate 2 * batch_size space
     --]]
-    local tensor_list = tds.Vec()
+    local tensor_list = tds.Vec() --reates a vector of elements indexed by numbers starting from 1
     local label_list = {}
     local max_w = 0
     local h = 0
@@ -176,8 +176,10 @@ function Loader:nxt_batch(indices, includeTranscripts)
     for _, ind in next, indices, nil do
         local tensor = txn_spect:get(ind):float()
         local label = torch.deserialize(txn_label:get(ind))
+        --torch.deserialize():Deserializes object from a string. 
+        --refer to https://github.com/torch/torch7/blob/master/doc/serialization.md
 
-        h = tensor:size(1)
+        h = tensor:size(1) --size(1):number of rows.
         sizes_array[cnt] = tensor:size(2); cnt = cnt + 1 -- record true length
         if max_w < tensor:size(2) then max_w = tensor:size(2) end -- find the max len in this batch
 
@@ -191,6 +193,7 @@ function Loader:nxt_batch(indices, includeTranscripts)
     for ind, tensor in ipairs(tensor_list) do
         tensor_array[ind][1]:narrow(2, 1, tensor:size(2)):copy(tensor)
     end
+    --以上将一个 batch 中的长度统一为 batch 中最长的长度，其余补 0.
 
     txn_spect:abort(); self.db_spect:close()
     txn_label:abort(); self.db_label:close()
@@ -199,3 +202,7 @@ function Loader:nxt_batch(indices, includeTranscripts)
     if includeTranscripts then return tensor_array, label_list, sizes_array, trans_list end
     return tensor_array, label_list, sizes_array
 end
+--tensor_array:一个 batch 的数据，每个样本长度相同.(4维)
+--label_list:对应每个样本的 label.
+--sizes_array:一个 batch 中实际每个样本的长度.
+--trans_list:transcripts for each training sample.

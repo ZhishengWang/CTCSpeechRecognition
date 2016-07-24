@@ -9,14 +9,16 @@ require 'nngraph'
 require 'Mapper'
 require 'WEREvaluator'
 
-local suffix = '_' .. os.date('%Y%m%d_%H%M%S')
+local suffix = '_' .. os.date('%Y%m%d_%H%M%S') --time display.
+--suffix:后缀、下标.
 local threads = require 'threads'
 local Network = {}
 
 --Training parameters
 seed = 10
 torch.setdefaulttensortype('torch.FloatTensor')
-torch.manualSeed(seed)
+torch.manualSeed(seed) --Set the seed of the random number generator to the given number.
+--可以理解为：虽然是随机数，但是这个数是与 seed 对应的.(https://github.com/torch/torch7/blob/master/doc/random.md)
 
 function Network:init(networkParams)
     self.fileName = networkParams.fileName -- The file name to save/load the network from.
@@ -28,7 +30,7 @@ function Network:init(networkParams)
     else
         require 'cutorch'
         require 'cunn'
-        cutorch.manualSeedAll(seed)
+        cutorch.manualSeedAll(seed)--Sets a manually specified RNG seed for all available GPUs
     end
     self.trainingSetLMDBPath = networkParams.trainingSetLMDBPath
     self.validationSetLMDBPath = networkParams.validationSetLMDBPath
@@ -36,7 +38,7 @@ function Network:init(networkParams)
     self.logsValidationPath = networkParams.logsValidationPath or nil
     self.modelTrainingPath = networkParams.modelTrainingPath or nil
 
-    self:makeDirectories({ self.logsTrainPath, self.logsValidationPath, self.modelTrainingPath })
+    self:makeDirectories({ self.logsTrainPath, self.logsValidationPath, self.modelTrainingPath }) --??
 
     self.mapper = Mapper(networkParams.dictionaryPath)
     self.werTester = WEREvaluator(self.validationSetLMDBPath, self.mapper, networkParams.validationBatchSize,

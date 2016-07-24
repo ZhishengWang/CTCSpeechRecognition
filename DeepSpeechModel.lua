@@ -71,8 +71,10 @@ end
 
 -- Based on convolution kernel and strides.
 local function calculateInputSizes(sizes)
+    --print("sizes before calculate:",sizes)
     sizes = torch.floor((sizes - 11) / 2 + 1) -- conv1
     sizes = torch.floor((sizes - 11) / 2 + 1) -- conv2
+    --print("sizes after calculate:",sizes)
     return sizes
 end
 

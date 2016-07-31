@@ -14,13 +14,12 @@ function BatchBRNN:__init(inputDim, outputDim)
 
     self.view_in = nn.View(1, 1, -1):setNumInputDims(3) -- input feature map should be the last 3 dims
     self.view_out = nn.View(1, -1):setNumInputDims(2) ---- input feature map should be the last 2 dims
-    --self.view_in = nn.View()
     
     self.rnn = cudnn.RNN(outputDim, outputDim, 1)
     local rnn = self.rnn
     rnn.inputMode = 'CUDNN_SKIP_INPUT'
     rnn.bidirectional = 'CUDNN_UNIDIRECTIONAL'
-    rnn.numDirections = 2
+    --rnn.numDirections = 2
     rnn:reset()
     self:add(self.view_in)
     self:add(nn.Linear(inputDim, outputDim, false)) --module = nn.Linear(inputDimension, outputDimension, [bias = false])

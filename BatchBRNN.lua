@@ -18,7 +18,7 @@ function BatchBRNN:__init(inputDim, outputDim)
     self.rnn = cudnn.RNN(outputDim, outputDim, 1)
     local rnn = self.rnn
     rnn.inputMode = 'CUDNN_SKIP_INPUT'
-    rnn.bidirectional = 'CUDNN_BIDIRECTIONAL'
+    rnn.bidirectional = 'CUDNN_UNIDIRECTIONAL'
     rnn.numDirections = 2
     rnn:reset()
     self:add(self.view_in)

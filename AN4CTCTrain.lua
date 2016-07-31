@@ -2,14 +2,14 @@
 
 local Network = require 'Network'
 
-local epochs = 70
+local epochs = 200
 
 local networkParams = {
     loadModel = false,
     saveModel = true,
     modelName = 'DeepSpeechModel',
     backend = 'cudnn', -- switch to rnn to use CPU
-    nGPU = 1, -- Number of GPUs, set -1 to use CPU
+    nGPU = 2, -- Number of GPUs, set -1 to use CPU
     trainingSetLMDBPath = './prepare_an4/train/',-- online loading path data.
     validationSetLMDBPath = './prepare_an4/test/',
     logsTrainPath = './logs/TrainingLoss/',
@@ -21,7 +21,7 @@ local networkParams = {
     validationBatchSize = 1,
     validationIterations = 20,
     saveModelInTraining = false, -- saves model periodically through training
-    saveModelIterations = 50
+    saveModelIterations = 100
 }
 --Parameters for the stochastic gradient descent (using the optim library).
 local sgdParams = {

@@ -38,7 +38,7 @@ function Network:init(networkParams)
     self.logsValidationPath = networkParams.logsValidationPath or nil
     self.modelTrainingPath = networkParams.modelTrainingPath or nil
 
-    self:makeDirectories({ self.logsTrainPath, self.logsValidationPath, self.modelTrainingPath }) --??
+    self:makeDirectories({ self.logsTrainPath, self.logsValidationPath, self.modelTrainingPath })
 
     self.mapper = Mapper(networkParams.dictionaryPath)
     self.werTester = WEREvaluator(self.validationSetLMDBPath, self.mapper, networkParams.validationBatchSize,
@@ -47,7 +47,8 @@ function Network:init(networkParams)
     self.saveModelInTraining = networkParams.saveModelInTraining or false
     self.loadModel = networkParams.loadModel
     self.saveModelIterations = networkParams.saveModelIterations or 10 -- Saves model every number of iterations.
-
+    
+    print("setting model saving/loading.")
     -- setting model saving/loading
     if (self.loadModel) then
         assert(networkParams.fileName, "Filename hasn't been given to load model.")
@@ -59,12 +60,14 @@ function Network:init(networkParams)
         self:prepSpeechModel(networkParams.modelName, networkParams.backend)
     end
     assert((networkParams.saveModel or networkParams.loadModel) and networkParams.fileName, "To save/load you must specify the fileName you want to save to")
+    print("setting online loading")
     -- setting online loading
     self.indexer = indexer(networkParams.trainingSetLMDBPath, networkParams.batchSize)
     self.indexer:prep_sorted_inds()
     self.pool = threads.Threads(1, function() require 'Loader' end)
-    self.nbBatches = math.ceil(self.indexer.lmdb_size / networkParams.batchSize)
-
+    --self.nbBatches = math.ceil(self.indexer.lmdb_size / networkParams.batchSize)
+    self.nbBatches = 100
+    -- logger:provides logging and live plotting capabilities
     self.logger = optim.Logger(self.logsTrainPath .. 'train' .. suffix .. '.log')
     self.logger:setNames { 'loss', 'WER' }
     self.logger:style { '-', '-' }
@@ -92,14 +95,15 @@ function Network:trainNetwork(epochs, sgd_params)
     --[[
         train network with self-defined feval (sgd inside); use ctc for evaluation
     --]]
-    self.model:training()
+    self.model:training()  --sets the mode of the Module (or sub-modules) to train=true. This is useful for modules like Dropout that have a different behaviour during training vs evaluation.
 
     local lossHistory = {}
     local validationHistory = {}
-    local ctcCriterion = nn.CTCCriterion(true)
-    local x, gradParameters = self.model:getParameters()
+    local ctcCriterion = nn.CTCCriterion(true)  --true:with batch x seqlength x feature(28 or inputdim)
+    --measures the loss between a 3D output of (batch x time x inputdim) and a target without needing alignment of inputs and labels. 
+    local x, gradParameters = self.model:getParameters() --Flatten Parameters
 
-    print("Number of parameters: ", gradParameters:size(1))
+    print("Number of parameters: ", gradParameters:size(1)) --size(i):Size of the i-th dimension
 
     -- inputs (preallocate)
     local inputs = torch.Tensor()
@@ -141,12 +145,13 @@ function Network:trainNetwork(epochs, sgd_params)
             end)
         --------------------- fwd and bwd ---------------------
         inputs:resize(inputsCPU:size()):copy(inputsCPU) -- transfer over to GPU
-        sizes = self.calSize(sizes)
+        -- sizes = self.calSize(sizes) --seems wrong to write this.
         local predictions = self.model:forward(inputs)
         local loss = ctcCriterion:forward(predictions, targets, sizes)
         self.model:zeroGradParameters()
         local gradOutput = ctcCriterion:backward(predictions, targets)
         self.model:backward(inputs, gradOutput)
+		assert(inputs:size(1) ~= 0,"interrupt,input's size is 0.")
         gradParameters:div(inputs:size(1))
         return loss, gradParameters
     end
@@ -167,7 +172,7 @@ function Network:trainNetwork(epochs, sgd_params)
                 self.model:syncParameters()
             end
             currentLoss = currentLoss + fs[1]
-            xlua.progress(j, self.nbBatches)
+            xlua.progress(j, self.nbBatches) --进度条提示
             averageLoss = averageLoss + currentLoss
         end
 

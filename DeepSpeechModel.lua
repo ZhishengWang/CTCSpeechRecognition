@@ -42,7 +42,7 @@ local function deepSpeech(nGPU, isCUDNN)
     local rnnInputsize = 32 * 41 -- based on the above convolutions.
     local rnnHiddenSize = 1300 -- size of rnn hidden layers
     local nbOfHiddenLayers = 8
-
+    --initial:1300*8
     conv:add(nn.View(rnnInputsize, -1):setNumInputDims(3)) -- batch x features x seqLength
     conv:add(nn.Transpose({ 2, 3 }, { 1, 2 })) -- seqLength x batch x features
 
@@ -59,7 +59,7 @@ local function deepSpeech(nGPU, isCUDNN)
 
     local post_sequential = nn.Sequential()
     post_sequential:add(nn.BatchNormalization(rnnHiddenSize))
-    post_sequential:add(nn.Linear(rnnHiddenSize, 28))
+    post_sequential:add(nn.Linear(rnnHiddenSize, 29))
 
     model:add(conv)
     model:add(rnn)

@@ -129,9 +129,11 @@ function indexer:nxt_inds()
     end
 
     self.cnt = self.batch_size - (self.lmdb_size - self.cnt)
-    for i = 1, self.cnt - 1 do -- overflow inds
-    table.insert(inds, i)
-    end
+	if self.cnt > 1 then --add to aviod the case of cnt=1
+		for i = 1, self.cnt - 1 do -- overflow inds
+			table.insert(inds, i)
+		end
+	end
 
     return inds
 end
@@ -178,9 +180,10 @@ function Loader:nxt_batch(indices, includeTranscripts)
         local label = torch.deserialize(txn_label:get(ind))
         --torch.deserialize():Deserializes object from a string. 
         --refer to https://github.com/torch/torch7/blob/master/doc/serialization.md
-
-        h = tensor:size(1) --size(1):number of rows.
-        sizes_array[cnt] = tensor:size(2); cnt = cnt + 1 -- record true length
+        
+        --print(ind)
+        h = tensor:size(1) --size(1):number of rows. In this case,it returns the number of examples in this batch. 
+        sizes_array[cnt] = tensor:size(2); cnt = cnt + 1 -- record true length, spect-->label
         if max_w < tensor:size(2) then max_w = tensor:size(2) end -- find the max len in this batch
 
         tensor_list:insert(tensor)
@@ -189,11 +192,11 @@ function Loader:nxt_batch(indices, includeTranscripts)
     end
 
     -- store tensors into a fixed len tensor_array TODO should find a better way to do this
-    local tensor_array = torch.Tensor(#indices, 1, h, max_w):zero()
+    local tensor_array = torch.Tensor(#indices, 1, h, max_w):zero() --4D tensor
     for ind, tensor in ipairs(tensor_list) do
+        -- do not involve any memory copy, the dimension dim=2 is narrowed from index=1 to (index)1+tensor:size(2)-1
         tensor_array[ind][1]:narrow(2, 1, tensor:size(2)):copy(tensor)
     end
-    --以上将一个 batch 中的长度统一为 batch 中最长的长度，其余补 0.
 
     txn_spect:abort(); self.db_spect:close()
     txn_label:abort(); self.db_label:close()

@@ -83,7 +83,7 @@ function WEREvaluator:getWER(gpu, model, verbose, epoch)
         for j = 1, self.testBatchSize do
             local prediction_single = predictions[j]
             local predict_tokens = Evaluator.predict2tokens(prediction_single, self.mapper)
-            local WER = Evaluator.sequenceErrorRate(targets[j], predict_tokens)
+            local WER = Evaluator.sequenceErrorRate_v2(targets[j], predict_tokens)
             cumWER = cumWER + WER
             table.insert(werPredictions, { wer = WER * 100, target = self:tokens2text(targets[j]), prediction = self:tokens2text(predict_tokens) })
         end

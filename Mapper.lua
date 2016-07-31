@@ -2,7 +2,7 @@ require 'torch'
 
 -- construct an object to deal with the mapping
 local mapper = torch.class('Mapper')
---alphabet:a-z、$ tocken:0-26
+--alphabet:a-z、$ tocken:0-28
 function mapper:__init(dictPath)
     assert(paths.filep(dictPath), dictPath ..' not found')
 

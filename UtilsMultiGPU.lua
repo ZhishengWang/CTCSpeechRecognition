@@ -1,10 +1,11 @@
 require 'rnn'
 require 'nngraph'
+--require 'cunn'
 
 local ffi = require 'ffi'
 
 local default_GPU = 1
-function makeDataParallel(model, nGPU, is_cudnn)
+function makeDataParallel(model, nGPU, is_cudnn) --model type can only be nn.DataParallelTable.(desided by fun loadDataParallel)
     if nGPU >= 1 then
         if is_cudnn then
             cudnn.fastest = true
@@ -12,18 +13,20 @@ function makeDataParallel(model, nGPU, is_cudnn)
         end
         if nGPU > 1 then
             gpus = torch.range(1, nGPU):totable()
+            --Split along first (batch) dimension,replicate model to GPU 1,...,nGPU, and use a seperate thread for each replica. 
             dpt = nn.DataParallelTable(1):add(model, gpus):threads(function()
                 require 'nngraph'
                 require 'SequenceWise'
                 if is_cudnn then
                     local cudnn = require 'cudnn'
-                    cudnn.fastest = true
+                    cudnn.fastest = true  --set to true to pick the fastest convolution algorithm, default is false.
+                    cudnn.verbose = true -- this prints out some more verbose information useful for debugging
                     require 'BatchBRNNReLU'
                 else
                     require 'rnn'
                 end
             end)
-            dpt.gradInput = nil
+            dpt.gradInput = nil  --??
             model = dpt
         end
         model:cuda()
@@ -74,10 +77,11 @@ function loadDataParallel(filename, nGPU, is_cudnn)
         for i, module in ipairs(model.modules) do
             if torch.type(module) == 'nn.DataParallelTable' then
                 model.modules[i] = makeDataParallel(module:get(1):float(), nGPU, is_cudnn)
+                --module:get(1):return module[1]
             end
         end
         return model
-    elseif torch.type(model) == 'nn.gModule' then
+    elseif torch.type(model) == 'nn.gModule' then --graph model
         model = makeDataParallel(model, nGPU, is_cudnn)
         return model
     else

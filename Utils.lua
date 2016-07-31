@@ -15,7 +15,7 @@ local function split(s, p)
     return rt
 end
 
-local function trans2tokens(line, _mapper)
+local function trans2tokens_old(line, _mapper)
     --[[
         input:
             line: ERASE C Q Q F SEVEN (id)
@@ -30,6 +30,35 @@ local function trans2tokens(line, _mapper)
     line = line:gsub('^%s', ''):gsub('', ''):gsub('', ''):gsub('%(.+%)', ''):gsub('%s$', ''):gsub('<s>', ''):gsub('</s>', '')
     -- strip
     line = line:match("^%s*(.-)%s*$")
+    for i = 1, #line do
+        local character = line:sub(i, i)
+        table.insert(label, _mapper.alphabet2token[character])
+    end
+
+    return torch.serialize(label), torch.serialize(line)
+end
+
+local function trans2tokens(line, _mapper)
+    --[[
+        input:
+            line:id ERASE C Q Q F SEVEN
+
+        output:
+            label: {3,7,1,2,8}
+            line: erase c q q f seven
+    --]]
+
+    local label = {}
+    line = string.lower(line)
+    --line = line:gsub('^%s', ''):gsub('', ''):gsub('', ''):gsub('%(.+%)', ''):gsub('%s$', ''):gsub('<s>', ''):gsub('</s>', '')
+    -- strip
+	--print(line)
+    line = line:gsub('%d+','')
+	--print(line)
+    line = line:gsub('%-%-','')
+	--print(line)
+    line = line:match("^%s*(.-)%s*$")
+	--print(line)
     for i = 1, #line do
         local character = line:sub(i, i)
         table.insert(label, _mapper.alphabet2token[character])
@@ -71,13 +100,14 @@ function util.mk_lmdb(root_path, index_path, dict_path, out_dir, windowSize, str
 
         -- make label
         local label, modified_trans = trans2tokens(trans, mapper)
-
+		
         -- make spect
         local wave = audio.load(root_path .. wave_path)
         local spect = audio.spectrogram(wave, windowSize, 'hamming', stride) -- freq-by-frames tensor
-
+        --generate the spectrogram of an audio. returns a 2D tensor, with number_of_windows x window_size/2+1, each value representing the magnitude of each frequency in dB
         -- put into lmdb
         spect = spect:float()
+        --print(spect:size()) --?*161
         txn_spect:put(cnt, spect:byte())
         txn_label:put(cnt, label)
         txn_trans:put(cnt, modified_trans)

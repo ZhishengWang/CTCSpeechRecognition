@@ -32,17 +32,17 @@ local function deepSpeech(nGPU, isCUDNN)
     local GRU = false
     local conv = nn.Sequential()
     -- (nInputPlane, nOutputPlane, kW, kH, [dW], [dH], [padW], [padH]) conv layers.
-    conv:add(nn.SpatialConvolution(1, 32, 11, 41, 2, 2))
-    conv:add(nn.SpatialBatchNormalization(32))
+    conv:add(nn.SpatialConvolution(1, 32, 5, 20, 2, 2):noBias())
+    conv:add(nn.SpatialBatchNormalization(32)) -- only accepts 4D inputs.
     conv:add(ReLU(isCUDNN))
-    conv:add(nn.SpatialConvolution(32, 32, 11, 21, 2, 1))
+    conv:add(nn.SpatialConvolution(32, 32, 5, 10, 1, 2):noBias())
     conv:add(nn.SpatialBatchNormalization(32))
     conv:add(ReLU(isCUDNN))
 
-    local rnnInputsize = 32 * 41 -- based on the above convolutions.
-    local rnnHiddenSize = 1300 -- size of rnn hidden layers
+    local rnnInputsize = 32 * 31 -- based on the above convolutions.
+    local rnnHiddenSize = 1760 -- size of rnn hidden layers
     local nbOfHiddenLayers = 8
-    --initial:1300*8
+    --initial:1760*8
     conv:add(nn.View(rnnInputsize, -1):setNumInputDims(3)) -- batch x features x seqLength
     conv:add(nn.Transpose({ 2, 3 }, { 1, 2 })) -- seqLength x batch x features
 
@@ -65,6 +65,7 @@ local function deepSpeech(nGPU, isCUDNN)
     model:add(rnn)
     model:add(nn.SequenceWise(post_sequential))
     model:add(nn.Transpose({1, 2})) -- batch x seqLength x features
+	print(model)
     model = makeDataParallel(model, nGPU, isCUDNN)
     return model
 end

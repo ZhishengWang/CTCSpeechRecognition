@@ -35,7 +35,7 @@ local function deepSpeech(nGPU, isCUDNN)
     conv:add(nn.SpatialConvolution(1, 32, 5, 21, 2, 2):noBias())
     conv:add(nn.SpatialBatchNormalization(32)) -- only accepts 4D inputs.
     conv:add(ReLU(isCUDNN))
-    conv:add(nn.SpatialConvolution(32, 32, 5, 11, 1, 2):noBias())
+    conv:add(nn.SpatialConvolution(32, 32, 5, 11, 2, 2):noBias())
     conv:add(nn.SpatialBatchNormalization(32))
     conv:add(ReLU(isCUDNN))
 
@@ -74,7 +74,7 @@ end
 local function calculateInputSizes(sizes)
     --print("sizes before calculate:",sizes)
     sizes = torch.floor((sizes - 5) / 2 + 1) -- conv1
-    sizes = torch.floor((sizes - 5) / 1 + 1) -- conv2
+    sizes = torch.floor((sizes - 5) / 2 + 1) -- conv2
     --print("sizes after calculate:",sizes)
     return sizes
 end
